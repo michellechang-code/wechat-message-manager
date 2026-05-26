@@ -1,0 +1,26 @@
+# 環境變數
+.env
+.env.local
+.env.*.local
+
+# Node modules
+node_modules/
+package-lock.json
+yarn.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 測試檔
+*.test.js
+coverage/
+
+# 臨時檔
+tmp/
+temp/
+*.log
