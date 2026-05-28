@@ -963,25 +963,37 @@ function handleExcelFile(e){
       workbook.SheetNames.forEach(function(sheetName){
         if(skipSheets.indexOf(sheetName)>-1) return;
         var ws=workbook.Sheets[sheetName];
-        var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
         sheetCount++;
 
-        // 找週次欄位（格式 YYYY-MM-W# 或 YYYY/MM/W#）
+        // ── 合併儲存格處理：把合併範圍的值填回每一格 ──
+        var merges=ws['!merges']||[];
+        merges.forEach(function(merge){
+          var startCell=XLSX.utils.encode_cell({r:merge.s.r,c:merge.s.c});
+          var masterVal=ws[startCell]?ws[startCell].v:'';
+          for(var mr=merge.s.r;mr<=merge.e.r;mr++){
+            for(var mc=merge.s.c;mc<=merge.e.c;mc++){
+              var cellAddr=XLSX.utils.encode_cell({r:mr,c:mc});
+              if(!ws[cellAddr]&&masterVal!==''){
+                ws[cellAddr]={v:masterVal,t:typeof masterVal==='number'?'n':'s'};
+              }
+            }
+          }
+        });
+
+        var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+
+        // 找週次欄位（格式 YYYY-MM-W#）
         var headerRow=rows[1]||[];
         var weekCols=[];
         headerRow.forEach(function(h,idx){
           if(idx<5) return;
           var hs=String(h||'').trim();
-          if(/\d{4}[-\/]\d{2}[-\/]?W\d/i.test(hs)||/W\d/i.test(hs)){
+          if(hs&&(hs.indexOf('W')>-1||hs.indexOf('w')>-1)&&/\d{4}/.test(hs)){
             weekCols.push({idx:idx,label:hs});
           }
         });
-        // 取最後兩個週次欄
         var w1=weekCols.length>=2?weekCols[weekCols.length-2]:null;
         var w2=weekCols.length>=1?weekCols[weekCols.length-1]:null;
-
-        var salesName=sheetName;
-        var currentCustomer='';
 
         rows.forEach(function(row,idx){
           if(idx<2) return;
@@ -990,26 +1002,45 @@ function handleExcelFile(e){
           var model=String(row[2]||'').trim();
           var qty=String(row[3]||'').trim();
           var delivery=String(row[4]||'').trim();
-          if(!model) return;
-          if(sales) salesName=sales;
-          if(customer) currentCustomer=customer;
 
-          // 處理交期
+          // 機型空白就跳過（合併儲存格已補值，所以業務/客戶不會空）
+          if(!model) return;
+
+          // 處理交期（Excel日期數字）
           var deliveryStr=delivery;
           if(!isNaN(delivery)&&delivery!==''){
-            try{var d=XLSX.SSF.parse_date_code(Number(delivery));if(d)deliveryStr=d.y+'/'+(d.m<10?'0':'')+d.m+'/'+(d.d<10?'0':'')+d.d;}catch(e){}
+            try{var d=XLSX.SSF.parse_date_code(Number(delivery));if(d)deliveryStr=d.y+'/'+(d.m<10?'0':'')+d.m+'/'+(d.d<10?'0':'')+d.d;}catch(ex){}
           }
 
+          // 每行獨立讀取進度，不繼承上一行
           var status1=w1?String(row[w1.idx]||'').trim():'';
           var status2=w2?String(row[w2.idx]||'').trim():'';
 
+          // 若最新兩週都空，往前找最後有值的週欄
+          if(!status1&&!status2){
+            for(var wi=weekCols.length-1;wi>=0;wi--){
+              var sv=String(row[weekCols[wi].idx]||'').trim();
+              if(sv){
+                status2=sv;
+                if(!w2) w2={label:weekCols[wi].label,idx:weekCols[wi].idx};
+                break;
+              }
+            }
+          }
+
           rowCount++;
           parsed.push({
-            sales:salesName,customer:currentCustomer,model:model,
-            qty:qty,delivery:deliveryStr,
-            status_w1:status1,week_w1:w1?w1.label:'',
-            status_w2:status2,week_w2:w2?w2.label:'',
-            sheet:sheetName,created_by:currentUser.id
+            sales:sales||sheetName,
+            customer:customer,
+            model:model,
+            qty:qty,
+            delivery:deliveryStr,
+            status_w1:status1,
+            week_w1:w1?w1.label:'',
+            status_w2:status2,
+            week_w2:w2?w2.label:'',
+            sheet:sheetName,
+            created_by:currentUser.id
           });
         });
       });
@@ -1045,7 +1076,6 @@ function closeDetail(){document.getElementById('detail-modal').style.display='no
 </script>
 </body>
 </html>
-
 
 
 
