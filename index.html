@@ -1006,7 +1006,6 @@ function handleExcelFile(e){
         var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
 
         // ── 自動偵測週次標題列和資料起始列 ──
-        // 掃描所有行，找含有 YYYY-MM-W# 格式的那一行當作週次標題
         var weekHeaderRowIdx=-1;
         var weekCols=[];
         for(var ri=0;ri<Math.min(rows.length,5);ri++){
@@ -1014,16 +1013,25 @@ function handleExcelFile(e){
           var found=[];
           for(var ci=0;ci<row.length;ci++){
             var hs=String(row[ci]||'').trim();
-            // 匹配 2026-05-W3 或 2026/05/W3 或含W數字的格式
-            if(hs.length>0&&/\d{4}.{1,2}\d{1,2}.{1,2}W\d/i.test(hs)){
+            // 匹配各種週次格式：2026-05-W3, 2026/05/W3, 2026-05W3 等
+            if(hs.length>=8&&(
+              /\d{4}-\d{2}-W\d/i.test(hs)||
+              /\d{4}\/\d{2}\/W\d/i.test(hs)||
+              /\d{4}-\d{2}W\d/i.test(hs)||
+              /\d{4}_\d{2}_W\d/i.test(hs)
+            )){
               found.push({idx:ci,label:hs});
             }
           }
           if(found.length>0){
             weekHeaderRowIdx=ri;
             weekCols=found;
+            console.log('[CRM] 週次標題在第'+ri+'行，找到'+found.length+'個週次欄：',found.map(function(f){return f.label+'(col'+f.idx+')'}).join(', '));
             break;
           }
+        }
+        if(weekCols.length===0){
+          console.warn('[CRM] '+sheetName+' 未找到週次欄位，請確認標題格式（需為 YYYY-MM-W# 格式）');
         }
 
         // 取最後兩個週次欄
