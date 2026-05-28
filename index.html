@@ -1005,29 +1005,47 @@ function handleExcelFile(e){
 
         var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
 
-        // 找週次欄位（格式 YYYY-MM-W#）
-        var headerRow=rows[1]||[];
+        // ── 自動偵測週次標題列和資料起始列 ──
+        // 掃描所有行，找含有 YYYY-MM-W# 格式的那一行當作週次標題
+        var weekHeaderRowIdx=-1;
         var weekCols=[];
-        headerRow.forEach(function(h,idx){
-          if(idx<5) return;
-          var hs=String(h||'').trim();
-          if(hs&&(hs.indexOf('W')>-1||hs.indexOf('w')>-1)&&/\d{4}/.test(hs)){
-            weekCols.push({idx:idx,label:hs});
+        for(var ri=0;ri<Math.min(rows.length,5);ri++){
+          var row=rows[ri];
+          var found=[];
+          for(var ci=0;ci<row.length;ci++){
+            var hs=String(row[ci]||'').trim();
+            // 匹配 2026-05-W3 或 2026/05/W3 或含W數字的格式
+            if(hs.length>0&&/\d{4}.{1,2}\d{1,2}.{1,2}W\d/i.test(hs)){
+              found.push({idx:ci,label:hs});
+            }
           }
-        });
+          if(found.length>0){
+            weekHeaderRowIdx=ri;
+            weekCols=found;
+            break;
+          }
+        }
+
+        // 取最後兩個週次欄
         var w1=weekCols.length>=2?weekCols[weekCols.length-2]:null;
         var w2=weekCols.length>=1?weekCols[weekCols.length-1]:null;
 
+        // 資料從週次標題列的下一行開始
+        var dataStartRow=weekHeaderRowIdx+1;
+        if(weekHeaderRowIdx<0) dataStartRow=3; // 找不到就預設從第3行
+
         rows.forEach(function(row,idx){
-          if(idx<2) return;
+          if(idx<dataStartRow) return;
           var sales=String(row[0]||'').trim();
           var customer=String(row[1]||'').trim();
           var model=String(row[2]||'').trim();
           var qty=String(row[3]||'').trim();
           var delivery=String(row[4]||'').trim();
 
-          // 機型空白就跳過（合併儲存格已補值，所以業務/客戶不會空）
+          // 機型空白就跳過
           if(!model) return;
+          // 跳過看起來像標題的行（model含中文「機」字）
+          if(model==='機種/機型'||model==='機型') return;
 
           // 處理交期（Excel日期數字）
           var deliveryStr=delivery;
@@ -1035,7 +1053,7 @@ function handleExcelFile(e){
             try{var d=XLSX.SSF.parse_date_code(Number(delivery));if(d)deliveryStr=d.y+'/'+(d.m<10?'0':'')+d.m+'/'+(d.d<10?'0':'')+d.d;}catch(ex){}
           }
 
-          // 每行獨立讀取進度，不繼承上一行
+          // 每行獨立讀取進度
           var status1=w1?String(row[w1.idx]||'').trim():'';
           var status2=w2?String(row[w2.idx]||'').trim():'';
 
@@ -1145,6 +1163,5 @@ function closeDetail(){document.getElementById('detail-modal').style.display='no
 </script>
 </body>
 </html>
-
 
 
