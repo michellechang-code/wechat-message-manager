@@ -571,23 +571,23 @@ function renderUnified(){
           return '<div class="record-row">'
             +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">'
               +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
-                +'<span class="badge-wechat"><i class="fa-brands fa-weixin" style="margin-right:3px;"></i>微信</span>'
-                +(r.contact?'<span style="font-size:12px;color:var(--text-m);"><i class="fa-regular fa-user" style="font-size:10px;margin-right:2px;"></i>'+escH(r.contact)+'</span>':'')
-                +'<span style="font-size:11px;color:var(--text-s);">'+escH(r.date||'')+'</span>'
-                +(r.delivery?'<span class="badge badge-amber" style="font-size:10px;"><i class="fa-regular fa-calendar" style="font-size:9px;"></i> '+escH(r.delivery)+'</span>':'')
-                +(r.qty?'<span class="badge badge-gray" style="font-size:10px;">'+escH(String(r.qty).replace(/[台台]/g,'').trim())+' 台</span>':'')
-                +(r.price&&r.price!=='—'?'<span class="badge badge-green" style="font-size:10px;">'+escH(r.price)+'</span>':'')
+                +'<span class="badge-wechat" style="font-size:11px;"><i class="fa-brands fa-weixin" style="margin-right:3px;"></i>微信</span>'
+                +(r.contact?'<span style="font-size:12px;color:var(--text-m);font-weight:500;"><i class="fa-regular fa-user" style="font-size:10px;margin-right:3px;color:var(--text-s);"></i>'+escH(r.contact)+'</span>':'')
+                +(r.date?'<span style="font-size:11px;color:var(--text-s);">'+escH(r.date)+'</span>':'')
+                +(r.delivery?'<span style="font-size:12px;color:var(--text-m);"><i class="fa-regular fa-calendar" style="font-size:10px;margin-right:3px;color:var(--text-s);"></i>交期：<b>'+escH(r.delivery)+'</b></span>':'')
+                +(r.qty?'<span style="font-size:12px;color:var(--text-m);"><i class="fa-solid fa-desktop" style="font-size:10px;margin-right:3px;color:var(--text-s);"></i><b>'+escH(String(r.qty).replace(/[台台]/g,'').trim())+'</b> 台</span>':'')
+                +(r.price&&r.price!=='—'?'<span style="font-size:12px;color:var(--green);font-weight:500;"><i class="fa-solid fa-tag" style="font-size:10px;margin-right:3px;"></i>'+escH(r.price)+'</span>':'')
               +'</div>'
               +'<div style="display:flex;align-items:center;gap:6px;">'
-                +'<span class="badge '+statusBadgeCls[sc]+'" style="font-size:10px;">'+statusLabel[sc]+'</span>'
+                +'<span class="badge '+statusBadgeCls[sc]+'" style="font-size:11px;padding:3px 10px;">'+statusLabel[sc]+'</span>'
                 +(canDelete(r)?'<button class="del-btn" onclick="deleteCustRecord(\''+r.id+'\')" title="刪除"><i class="fa-solid fa-trash-can"></i></button>':'')
               +'</div>'
             +'</div>'
-            +(r.raw||r.note?'<div style="margin-top:6px;">'
-              +'<button onclick="toggleExpand(this)" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;"><i class="fa-solid fa-chevron-down" style="margin-right:3px;font-size:10px;"></i>展開完整訊息</button>'
-              +'<div class="expand-content" style="display:none;margin-top:6px;">'
-                +(r.raw?'<div style="font-size:12px;color:var(--text-s);line-height:1.6;white-space:pre-wrap;background:var(--bg);border-radius:6px;padding:8px;">'+hl(r.raw,q)+'</div>':'')
-                +(r.note?'<div style="font-size:12px;color:var(--text-m);margin-top:4px;"><i class="fa-solid fa-note-sticky" style="font-size:10px;margin-right:3px;"></i>'+escH(r.note)+'</div>':'')
+            +(r.raw||r.note?'<div style="margin-top:8px;">'
+              +'<button onclick="toggleExpand(this)" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-chevron-down" style="font-size:10px;"></i><span>展開完整訊息</span></button>'
+              +'<div class="expand-content" style="display:none;margin-top:8px;background:var(--bg);border-radius:8px;padding:10px 12px;">'
+                +(r.raw?'<div style="font-size:13px;color:var(--text-b);line-height:1.7;white-space:pre-wrap;">'+hl(r.raw,q)+'</div>':'')
+                +(r.note?'<div style="font-size:12px;color:var(--text-m);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);"><i class="fa-solid fa-note-sticky" style="font-size:10px;margin-right:4px;"></i>'+escH(r.note)+'</div>':'')
               +'</div>'
             +'</div>':'')
           +'</div>';
@@ -598,38 +598,35 @@ function renderUnified(){
           var latestStatus=r.status_w2||r.status_w1||'';
           var prevStatus=(r.status_w2&&r.status_w1)?r.status_w1:'';
           var sc=classifyStatus(latestStatus);
-          return '<div class="record-row">'
-            +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">'
+          return '<div class="record-row" style="padding:12px 14px;">'
+            +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;">'
               +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
-                +'<span class="badge-crm"><i class="fa-solid fa-table" style="margin-right:3px;"></i>CRM</span>'
-                +(r.sales?'<span style="font-size:12px;color:var(--text-m);"><i class="fa-solid fa-user-tie" style="font-size:10px;margin-right:2px;"></i>'+escH(r.sales)+'</span>':'')
-                +(r.delivery?'<span class="badge badge-amber" style="font-size:10px;"><i class="fa-regular fa-calendar" style="font-size:9px;"></i> 需求：'+escH(r.delivery)+'</span>':'')
-                +(r.qty?'<span class="badge badge-gray" style="font-size:10px;">'+escH(String(r.qty).replace(/[台台]/g,'').trim())+' 台</span>':'')
+                +'<span class="badge-crm" style="font-size:11px;"><i class="fa-solid fa-table" style="margin-right:3px;"></i>CRM</span>'
+                +(r.sales?'<span style="font-size:12px;color:var(--text-m);font-weight:500;"><i class="fa-solid fa-user-tie" style="font-size:10px;margin-right:3px;color:var(--text-s);"></i>'+escH(r.sales)+'</span>':'')
+                +(r.delivery?'<span style="font-size:12px;color:var(--text-m);"><i class="fa-regular fa-calendar" style="font-size:10px;margin-right:3px;color:var(--text-s);"></i>需求：<b>'+escH(r.delivery)+'</b></span>':'')
+                +(r.qty?'<span style="font-size:12px;color:var(--text-m);"><i class="fa-solid fa-desktop" style="font-size:10px;margin-right:3px;color:var(--text-s);"></i><b>'+escH(String(r.qty).replace(/[台台]/g,'').trim())+'</b> 台</span>':'')
               +'</div>'
-              +'<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
-                +(canDelete(r)?'<button class="del-btn" onclick="deleteCRMRecord(\''+r.id+'\')" title="刪除"><i class="fa-solid fa-trash-can"></i></button>':'')
+              +'<div style="display:flex;align-items:center;gap:6px;">'
+                +'<span class="badge '+statusBadgeCls[sc]+'" style="font-size:11px;padding:3px 10px;">'+statusLabel[sc]+'</span>'
+                +(canDelete(r)?'<button class="del-btn" onclick="deleteCRMRecord(''+r.id+'')" title="刪除"><i class="fa-solid fa-trash-can"></i></button>':'')
               +'</div>'
             +'</div>'
-            // 進度直接顯示
-            +'<div style="margin-top:8px;padding-top:7px;border-top:1px solid var(--border);">'
-              +(latestWeek?'<div style="font-size:10px;color:var(--text-s);margin-bottom:3px;letter-spacing:0.3px;">'+escH(latestWeek)+'</div>':'')
-              +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">'
-                +'<div style="font-size:13px;color:var(--text-b);font-weight:500;line-height:1.5;flex:1;">'
-                  +(latestStatus?hl(latestStatus,q):'<span style="color:var(--text-s);">（無進度記錄）</span>')
-                +'</div>'
-                +'<span class="badge '+statusBadgeCls[sc]+'" style="font-size:10px;flex-shrink:0;">'+statusLabel[sc]+'</span>'
+            +'<div style="background:var(--bg);border-radius:8px;padding:10px 12px;">'
+              +(latestWeek?'<div style="font-size:11px;color:var(--accent);font-weight:600;margin-bottom:5px;letter-spacing:0.5px;">'+escH(latestWeek)+'</div>':'')
+              +'<div style="font-size:14px;color:var(--text-h);font-weight:600;line-height:1.6;">'
+                +(latestStatus?hl(latestStatus,q):'<span style="color:var(--text-s);font-weight:400;">（無進度記錄）</span>')
               +'</div>'
-              +(prevStatus&&prevWeek?'<div style="font-size:11px;color:var(--text-s);margin-top:5px;padding-top:5px;border-top:1px dashed var(--border);"><b>'+escH(prevWeek)+'：</b>'+hl(prevStatus,q)+'</div>':'')
+              +(prevStatus&&prevWeek?'<div style="font-size:11px;color:var(--text-s);margin-top:7px;padding-top:7px;border-top:1px dashed var(--border);line-height:1.5;"><span style="font-weight:500;">'+escH(prevWeek)+'</span>：'+hl(prevStatus,q)+'</div>':'')
             +'</div>'
           +'</div>';
         }
       }).join('');
 
       return '<div class="model-block">'
-        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 10px;background:var(--bg);border-radius:8px;border-left:3px solid var(--border2);">'
-          +'<i class="fa-solid fa-microchip" style="color:var(--text-m);font-size:11px;"></i>'
-          +'<span style="font-size:13px;font-weight:600;color:var(--text-b);font-family:monospace,sans-serif;letter-spacing:0.5px;">'+hl(mk,q)+'</span>'
-          +'<span style="font-size:11px;color:var(--text-s);">'+records.length+' 筆</span>'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:9px 12px;background:#eef3fb;border-radius:8px;border-left:4px solid var(--accent);">'
+          +'<i class="fa-solid fa-microchip" style="color:var(--accent);font-size:13px;"></i>'
+          +'<span style="font-size:15px;font-weight:700;color:var(--accent);font-family:monospace,sans-serif;letter-spacing:0.8px;">'+hl(mk,q)+'</span>'
+          +'<span style="font-size:11px;color:var(--text-s);margin-left:4px;">'+records.length+' 筆</span>'
         +'</div>'
         +recordsHtml
       +'</div>';
@@ -1171,5 +1168,3 @@ function closeDetail(){document.getElementById('detail-modal').style.display='no
 </script>
 </body>
 </html>
-
-
