@@ -461,14 +461,26 @@ window.onload=async function(){
 
 // ══ 載入資料 ════════════════════════════════════════════════
 async function loadAllData(){
+  // 先找最新的 import_date
+  var latestImport=await sb.from('crm_records')
+    .select('import_date')
+    .not('import_date','is',null)
+    .order('import_date',{ascending:false})
+    .limit(1)
+    .single();
+  var latestDate=latestImport.data?latestImport.data.import_date:null;
+
   var [wRes,cRes,eRes]=await Promise.all([
     sb.from('wechat_messages').select('*').order('date',{ascending:false}),
-    sb.from('crm_records').select('*').order('created_at',{ascending:false}),
+    latestDate
+      ? sb.from('crm_records').select('*').eq('import_date',latestDate).order('created_at',{ascending:false})
+      : sb.from('crm_records').select('*').order('created_at',{ascending:false}),
     sb.from('engineer_messages').select('*').order('date',{ascending:false})
   ]);
   custData=wRes.data||[];
   crmData=cRes.data||[];
   engData=eRes.data||[];
+  if(latestDate) console.log('[CRM] 載入最新匯入：'+latestDate+'，共'+crmData.length+'筆');
 }
 
 // ══ TAB ═════════════════════════════════════════════════════
@@ -980,6 +992,7 @@ function handleExcelFile(e){
       var skipSheets=['已接訂單','已無需求_結案','Sheet1','Sheet2'];
       var parsed=[];
       var sheetCount=0,rowCount=0;
+      var importDate=new Date().toISOString().split('T')[0]; // 今天日期 YYYY-MM-DD
 
       workbook.SheetNames.forEach(function(sheetName){
         if(skipSheets.indexOf(sheetName)>-1) return;
@@ -1087,6 +1100,7 @@ function handleExcelFile(e){
             status_w2:status2,
             week_w2:w2?w2.label:'',
             sheet:sheetName,
+            import_date:importDate,
             created_by:currentUser.id
           });
         });
@@ -1100,13 +1114,14 @@ function handleExcelFile(e){
         if(error) throw new Error(error.message);
       }
 
-      // 重新載入CRM資料
-      var {data:newCRM}=await sb.from('crm_records').select('*').order('created_at',{ascending:false});
+      // 重新載入CRM資料（只取最新匯入日期）
+      var {data:newCRM}=await sb.from('crm_records').select('*').eq('import_date',importDate).order('created_at',{ascending:false});
       crmData=newCRM||[];
 
       resultEl.innerHTML='<div style="background:var(--green-bg);border:1px solid #a0d8b8;border-radius:10px;padding:12px 14px;">'
         +'<div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:8px;"><i class="fa-solid fa-circle-check" style="margin-right:5px;"></i>匯入成功！已儲存至資料庫</div>'
-        +'<div style="font-size:13px;color:var(--text-m);">共讀取 <b>'+sheetCount+'</b> 位業務，<b>'+rowCount+'</b> 筆訂單資料</div>'
+        +'<div style="font-size:13px;color:var(--text-m);">匯入日期：<b>'+importDate+'</b>｜共讀取 <b>'+sheetCount+'</b> 位業務，<b>'+rowCount+'</b> 筆訂單資料</div>'
+        +'<div style="font-size:12px;color:var(--text-s);margin-top:4px;">下次匯入時系統將自動切換至最新一份，舊資料保留備查。</div>'
         +'<button class="btn-primary" style="margin-top:10px;width:100%;justify-content:center;" onclick="closeExcelImport();switchTab(\'customer\')">'
         +'<i class="fa-solid fa-magnifying-glass"></i> 前往客戶商務查看'
         +'</button></div>';
