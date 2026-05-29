@@ -352,9 +352,9 @@ mark{background:#ffe085;color:#5a3e00;border-radius:2px;padding:0 2px;}
       ondrop="event.preventDefault();this.style.borderColor='var(--border)';this.style.background='transparent';handleExcelFile({target:{files:event.dataTransfer.files}})">
       <i class="fa-solid fa-cloud-arrow-up" style="font-size:32px;color:var(--text-s);display:block;margin-bottom:10px;"></i>
       <div style="font-size:14px;font-weight:500;color:var(--text-m);">點擊或拖放 Excel 檔案到這裡</div>
-      <div style="font-size:12px;color:var(--text-s);margin-top:4px;">支援 .xlsx 格式</div>
+      <div style="font-size:12px;color:var(--text-s);margin-top:4px;">支援 .xlsx 格式，可同時選取多個檔案</div>
     </div>
-    <input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display:none;" onchange="handleExcelFile(event)" />
+    <input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display:none;" multiple onchange="handleExcelFile(event)" />
     <div id="excel-result" style="display:none;"></div>
   </div>
 </div>
@@ -978,160 +978,137 @@ function openExcelImport(){
 function closeExcelImport(){document.getElementById('excel-modal').style.display='none';}
 
 function handleExcelFile(e){
-  var file=e.target.files[0];
-  if(!file) return;
+  var files=Array.from(e.target.files||[]);
+  if(!files.length) return;
   var resultEl=document.getElementById('excel-result');
   resultEl.style.display='block';
-  resultEl.innerHTML='<div style="background:var(--accent-bg);border:1px solid #b8d4f4;border-radius:10px;padding:12px;font-size:13px;color:var(--accent);display:flex;align-items:center;gap:8px;"><span class="spinner"></span> 正在解析 Excel...</div>';
+  resultEl.innerHTML='<div style="background:var(--accent-bg);border:1px solid #b8d4f4;border-radius:10px;padding:12px;font-size:13px;color:var(--accent);display:flex;align-items:center;gap:8px;"><span class="spinner"></span> 正在解析 '+files.length+' 個 Excel 檔案...</div>';
 
-  var reader=new FileReader();
-  reader.onload=async function(e){
-    try{
-      var data=new Uint8Array(e.target.result);
-      var workbook=XLSX.read(data,{type:'array'});
-      var skipSheets=['已接訂單','已無需求_結案','Sheet1','Sheet2'];
-      var parsed=[];
-      var sheetCount=0,rowCount=0;
-      var importDate=new Date().toISOString().split('T')[0]; // 今天日期 YYYY-MM-DD
+  var importDate=new Date().toISOString().split('T')[0];
+  var totalSheets=0,totalRows=0,filesDone=0;
 
-      workbook.SheetNames.forEach(function(sheetName){
-        if(skipSheets.indexOf(sheetName)>-1) return;
-        var ws=workbook.Sheets[sheetName];
-        sheetCount++;
+  files.forEach(function(file){
+    var reader=new FileReader();
+    reader.onload=async function(ev){
+      try{
+        var data=new Uint8Array(ev.target.result);
+        var workbook=XLSX.read(data,{type:'array'});
+        var skipSheets=['已接訂單','已無需求_結案','Sheet1','Sheet2'];
+        var parsed=[];
+        var sheetCount=0,rowCount=0;
 
-        // ── 合併儲存格處理：把合併範圍的值填回每一格 ──
-        var merges=ws['!merges']||[];
-        merges.forEach(function(merge){
-          var startCell=XLSX.utils.encode_cell({r:merge.s.r,c:merge.s.c});
-          var masterVal=ws[startCell]?ws[startCell].v:'';
-          for(var mr=merge.s.r;mr<=merge.e.r;mr++){
-            for(var mc=merge.s.c;mc<=merge.e.c;mc++){
-              var cellAddr=XLSX.utils.encode_cell({r:mr,c:mc});
-              if(!ws[cellAddr]&&masterVal!==''){
-                ws[cellAddr]={v:masterVal,t:typeof masterVal==='number'?'n':'s'};
+        workbook.SheetNames.forEach(function(sheetName){
+          if(skipSheets.indexOf(sheetName)>-1) return;
+          var ws=workbook.Sheets[sheetName];
+          sheetCount++;
+
+          // 合併儲存格處理
+          var merges=ws['!merges']||[];
+          merges.forEach(function(merge){
+            var startCell=XLSX.utils.encode_cell({r:merge.s.r,c:merge.s.c});
+            var masterVal=ws[startCell]?ws[startCell].v:'';
+            for(var mr=merge.s.r;mr<=merge.e.r;mr++){
+              for(var mc=merge.s.c;mc<=merge.e.c;mc++){
+                var cellAddr=XLSX.utils.encode_cell({r:mr,c:mc});
+                if(!ws[cellAddr]&&masterVal!==''){
+                  ws[cellAddr]={v:masterVal,t:typeof masterVal==='number'?'n':'s'};
+                }
               }
             }
-          }
-        });
+          });
 
-        var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+          var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
 
-        // ── 自動偵測週次標題列和資料起始列 ──
-        var weekHeaderRowIdx=-1;
-        var weekCols=[];
-        for(var ri=0;ri<Math.min(rows.length,5);ri++){
-          var row=rows[ri];
-          var found=[];
-          for(var ci=0;ci<row.length;ci++){
-            var hs=String(row[ci]||'').trim();
-            // 匹配各種週次格式：2026-05-W3, 2026/05/W3, 2026-05W3 等
-            if(hs.length>=8&&(
-              /\d{4}-\d{2}-W\d/i.test(hs)||
-              /\d{4}\/\d{2}\/W\d/i.test(hs)||
-              /\d{4}-\d{2}W\d/i.test(hs)||
-              /\d{4}_\d{2}_W\d/i.test(hs)
-            )){
-              found.push({idx:ci,label:hs});
-            }
-          }
-          if(found.length>0){
-            weekHeaderRowIdx=ri;
-            weekCols=found;
-            console.log('[CRM] 週次標題在第'+ri+'行，找到'+found.length+'個週次欄：',found.map(function(f){return f.label+'(col'+f.idx+')'}).join(', '));
-            break;
-          }
-        }
-        if(weekCols.length===0){
-          console.warn('[CRM] '+sheetName+' 未找到週次欄位，請確認標題格式（需為 YYYY-MM-W# 格式）');
-        }
-
-        // 取最後兩個週次欄
-        var w1=weekCols.length>=2?weekCols[weekCols.length-2]:null;
-        var w2=weekCols.length>=1?weekCols[weekCols.length-1]:null;
-
-        // 資料從週次標題列的下一行開始
-        var dataStartRow=weekHeaderRowIdx+1;
-        if(weekHeaderRowIdx<0) dataStartRow=3; // 找不到就預設從第3行
-
-        rows.forEach(function(row,idx){
-          if(idx<dataStartRow) return;
-          var sales=String(row[0]||'').trim();
-          var customer=String(row[1]||'').trim();
-          var model=String(row[2]||'').trim();
-          var qty=String(row[3]||'').trim();
-          var delivery=String(row[4]||'').trim();
-
-          // 機型空白就跳過
-          if(!model) return;
-          // 跳過看起來像標題的行（model含中文「機」字）
-          if(model==='機種/機型'||model==='機型') return;
-
-          // 處理交期（Excel日期數字）
-          var deliveryStr=delivery;
-          if(!isNaN(delivery)&&delivery!==''){
-            try{var d=XLSX.SSF.parse_date_code(Number(delivery));if(d)deliveryStr=d.y+'/'+(d.m<10?'0':'')+d.m+'/'+(d.d<10?'0':'')+d.d;}catch(ex){}
-          }
-
-          // 每行獨立讀取進度
-          var status1=w1?String(row[w1.idx]||'').trim():'';
-          var status2=w2?String(row[w2.idx]||'').trim():'';
-
-          // 若最新兩週都空，往前找最後有值的週欄
-          if(!status1&&!status2){
-            for(var wi=weekCols.length-1;wi>=0;wi--){
-              var sv=String(row[weekCols[wi].idx]||'').trim();
-              if(sv){
-                status2=sv;
-                if(!w2) w2={label:weekCols[wi].label,idx:weekCols[wi].idx};
-                break;
+          // 自動偵測週次標題列
+          var weekHeaderRowIdx=-1;
+          var weekCols=[];
+          for(var ri=0;ri<Math.min(rows.length,5);ri++){
+            var row=rows[ri];
+            var found=[];
+            for(var ci=0;ci<row.length;ci++){
+              var hs=String(row[ci]||'').trim();
+              if(hs.length>=8&&(
+                /\d{4}-\d{2}-W\d/i.test(hs)||
+                /\d{4}\/\d{2}\/W\d/i.test(hs)||
+                /\d{4}-\d{2}W\d/i.test(hs)
+              )){
+                found.push({idx:ci,label:hs});
               }
             }
+            if(found.length>0){
+              weekHeaderRowIdx=ri;
+              weekCols=found;
+              break;
+            }
           }
+          var w1=weekCols.length>=2?weekCols[weekCols.length-2]:null;
+          var w2=weekCols.length>=1?weekCols[weekCols.length-1]:null;
+          var dataStartRow=weekHeaderRowIdx>=0?weekHeaderRowIdx+1:3;
 
-          rowCount++;
-          parsed.push({
-            sales:sales||sheetName,
-            customer:customer,
-            model:model,
-            qty:qty,
-            delivery:deliveryStr,
-            status_w1:status1,
-            week_w1:w1?w1.label:'',
-            status_w2:status2,
-            week_w2:w2?w2.label:'',
-            sheet:sheetName,
-            import_date:importDate,
-            created_by:currentUser.id
+          rows.forEach(function(row,idx){
+            if(idx<dataStartRow) return;
+            var sales=String(row[0]||'').trim();
+            var customer=String(row[1]||'').trim();
+            var model=String(row[2]||'').trim();
+            var qty=String(row[3]||'').trim();
+            var delivery=String(row[4]||'').trim();
+            if(!model) return;
+            if(model==='機種/機型'||model==='機型') return;
+
+            var deliveryStr=delivery;
+            if(!isNaN(delivery)&&delivery!==''){
+              try{var d=XLSX.SSF.parse_date_code(Number(delivery));if(d)deliveryStr=d.y+'/'+(d.m<10?'0':'')+d.m+'/'+(d.d<10?'0':'')+d.d;}catch(ex){}
+            }
+
+            var status1=w1?String(row[w1.idx]||'').trim():'';
+            var status2=w2?String(row[w2.idx]||'').trim():'';
+
+            if(!status1&&!status2){
+              for(var wi=weekCols.length-1;wi>=0;wi--){
+                var sv=String(row[weekCols[wi].idx]||'').trim();
+                if(sv){status2=sv;if(!w2)w2={label:weekCols[wi].label};break;}
+              }
+            }
+
+            rowCount++;
+            parsed.push({
+              sales:sales||sheetName,customer:customer,model:model,qty:qty,
+              delivery:deliveryStr,status_w1:status1,week_w1:w1?w1.label:'',
+              status_w2:status2,week_w2:w2?w2.label:'',
+              sheet:sheetName,import_date:importDate,created_by:currentUser.id
+            });
           });
         });
-      });
 
-      // 批次存到 Supabase（分批避免太大）
-      var batchSize=50;
-      for(var i=0;i<parsed.length;i+=batchSize){
-        var batch=parsed.slice(i,i+batchSize);
-        var {error}=await sb.from('crm_records').insert(batch);
-        if(error) throw new Error(error.message);
+        // 批次存入 Supabase
+        var batchSize=50;
+        for(var bi=0;bi<parsed.length;bi+=batchSize){
+          var batch=parsed.slice(bi,bi+batchSize);
+          var {error:bErr}=await sb.from('crm_records').insert(batch);
+          if(bErr) throw new Error(bErr.message);
+        }
+        totalSheets+=sheetCount;
+        totalRows+=rowCount;
+      }catch(err){
+        resultEl.innerHTML='<div style="background:var(--red-bg);border:1px solid #f0b8b8;border-radius:10px;padding:12px;font-size:13px;color:var(--red);"><i class="fa-solid fa-circle-exclamation" style="margin-right:5px;"></i>'+escH(file.name)+' 解析失敗：'+escH(err.message)+'</div>';
+        return;
       }
-
-      // 重新載入CRM資料（只取最新匯入日期）
-      var {data:newCRM}=await sb.from('crm_records').select('*').eq('import_date',importDate).order('created_at',{ascending:false});
-      crmData=newCRM||[];
-
-      resultEl.innerHTML='<div style="background:var(--green-bg);border:1px solid #a0d8b8;border-radius:10px;padding:12px 14px;">'
-        +'<div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:8px;"><i class="fa-solid fa-circle-check" style="margin-right:5px;"></i>匯入成功！已儲存至資料庫</div>'
-        +'<div style="font-size:13px;color:var(--text-m);">匯入日期：<b>'+importDate+'</b>｜共讀取 <b>'+sheetCount+'</b> 位業務，<b>'+rowCount+'</b> 筆訂單資料</div>'
-        +'<div style="font-size:12px;color:var(--text-s);margin-top:4px;">下次匯入時系統將自動切換至最新一份，舊資料保留備查。</div>'
-        +'<button class="btn-primary" style="margin-top:10px;width:100%;justify-content:center;" onclick="closeExcelImport();switchTab(\'customer\')">'
-        +'<i class="fa-solid fa-magnifying-glass"></i> 前往客戶商務查看'
-        +'</button></div>';
-
-      if(currentTab==='customer') renderUnified();
-    }catch(err){
-      resultEl.innerHTML='<div style="background:var(--red-bg);border:1px solid #f0b8b8;border-radius:10px;padding:12px;font-size:13px;color:var(--red);"><i class="fa-solid fa-circle-exclamation" style="margin-right:5px;"></i>解析失敗：'+escH(err.message)+'</div>';
-    }
-  };
-  reader.readAsArrayBuffer(file);
+      filesDone++;
+      if(filesDone===files.length){
+        var {data:newCRM}=await sb.from('crm_records').select('*').eq('import_date',importDate).order('created_at',{ascending:false});
+        crmData=newCRM||[];
+        resultEl.innerHTML='<div style="background:var(--green-bg);border:1px solid #a0d8b8;border-radius:10px;padding:12px 14px;">'
+          +'<div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:8px;"><i class="fa-solid fa-circle-check" style="margin-right:5px;"></i>全部匯入成功！</div>'
+          +'<div style="font-size:13px;color:var(--text-m);">匯入日期：<b>'+importDate+'</b>｜<b>'+files.length+'</b> 個檔案｜<b>'+totalSheets+'</b> 位業務｜<b>'+totalRows+'</b> 筆</div>'
+          +'<div style="font-size:12px;color:var(--text-s);margin-top:4px;">下次匯入時系統將自動切換至最新一份，舊資料保留備查。</div>'
+          +'<button class="btn-primary" style="margin-top:10px;width:100%;justify-content:center;" onclick="closeExcelImport();switchTab(\'customer\')">'
+          +'<i class="fa-solid fa-magnifying-glass"></i> 前往客戶商務查看'
+          +'</button></div>';
+        if(currentTab==='customer') renderUnified();
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  });
 }
 
 // ══ Debounce（防止 iPhone 過熱）════════════════════════════
@@ -1184,3 +1161,4 @@ function closeDetail(){document.getElementById('detail-modal').style.display='no
 </script>
 </body>
 </html>
+
