@@ -490,6 +490,8 @@ window.onload=async function(){
 };
 
 // ══ 載入資料 ════════════════════════════════════════════════
+var usersMap={}; // id -> {name, role}
+
 async function loadAllData(){
   // 先找最新的 import_date
   var latestImport=await sb.from('crm_records')
@@ -500,17 +502,31 @@ async function loadAllData(){
     .single();
   var latestDate=latestImport.data?latestImport.data.import_date:null;
 
-  var [wRes,cRes,eRes]=await Promise.all([
-    sb.from('wechat_messages').select('*').order('date',{ascending:false}),
+  var [wRes,cRes,eRes,uRes]=await Promise.all([
+    sb.from('wechat_messages').select('*').order('created_at',{ascending:false}),
     latestDate
       ? sb.from('crm_records').select('*').eq('import_date',latestDate).order('created_at',{ascending:false})
       : sb.from('crm_records').select('*').order('created_at',{ascending:false}),
-    sb.from('engineer_messages').select('*').order('date',{ascending:false})
+    sb.from('engineer_messages').select('*').order('created_at',{ascending:false}),
+    sb.from('users').select('id,name,role')
   ]);
   custData=wRes.data||[];
   crmData=cRes.data||[];
   engData=eRes.data||[];
+  // 建立 users 對照表
+  (uRes.data||[]).forEach(function(u){usersMap[u.id]=u;});
   if(latestDate) console.log('[CRM] 載入最新匯入：'+latestDate+'，共'+crmData.length+'筆');
+}
+
+function getUserName(id){
+  if(!id) return '';
+  var u=usersMap[id];
+  return u?u.name:'';
+}
+function formatCreatedAt(ts){
+  if(!ts) return '';
+  var d=new Date(ts);
+  return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate()+' '+(d.getHours()<10?'0':'')+d.getHours()+':'+(d.getMinutes()<10?'0':'')+d.getMinutes();
 }
 
 // ══ TAB ═════════════════════════════════════════════════════
@@ -617,6 +633,8 @@ function renderUnified(){
                 +'<span class="badge-wechat" style="font-size:11px;"><i class="fa-brands fa-weixin" style="margin-right:3px;"></i>微信</span>'
                 +(r.contact?'<span style="font-size:12px;color:var(--text-m);font-weight:500;"><i class="fa-regular fa-user" style="font-size:10px;margin-right:3px;color:var(--text-s);"></i>'+escH(r.contact)+'</span>':'')
                 +(r.date?'<span style="font-size:11px;color:var(--text-s);">'+escH(r.date)+'</span>':'')
+                +(getUserName(r.created_by)?'<span style="font-size:11px;color:var(--accent);font-weight:500;"><i class="fa-solid fa-circle-user" style="font-size:10px;margin-right:3px;"></i>'+escH(getUserName(r.created_by))+' 貼入</span>':'')
+                +(r.created_at?'<span style="font-size:11px;color:var(--text-s);"><i class="fa-regular fa-clock" style="font-size:10px;margin-right:3px;"></i>'+formatCreatedAt(r.created_at)+'</span>':'')
                 +(r.delivery?'<span style="font-size:12px;color:var(--text-m);"><i class="fa-regular fa-calendar" style="font-size:10px;margin-right:3px;color:var(--text-s);"></i>交期：<b>'+escH(r.delivery)+'</b></span>':'')
                 +(r.qty?'<span style="font-size:12px;color:var(--text-m);"><i class="fa-solid fa-desktop" style="font-size:10px;margin-right:3px;color:var(--text-s);"></i><b>'+escH(String(r.qty).replace(/[台台]/g,'').trim())+'</b> 台</span>':'')
                 +(r.price&&r.price!=='—'?'<span style="font-size:12px;color:var(--green);font-weight:500;"><i class="fa-solid fa-tag" style="font-size:10px;margin-right:3px;"></i>'+escH(r.price)+'</span>':'')
@@ -853,8 +871,13 @@ function renderEngineer(){
           +'<div style="font-size:12px;color:var(--text-s);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;">'
             +(r.company?'<span><i class="fa-regular fa-building" style="font-size:10px;margin-right:3px;"></i>'+hl(r.company,q)+'</span>':'')
             +(r.model?'<span><i class="fa-solid fa-microchip" style="font-size:10px;margin-right:3px;"></i>'+hl(r.model,q)+'</span>':'')
-            +'<span><i class="fa-solid fa-user-gear" style="font-size:10px;margin-right:3px;"></i>'+escH(r.engineer||'')+'</span>'
-            +'<span>'+escH(r.date||'')+'</span>'
+            +(r.engineer?'<span><i class="fa-solid fa-user-gear" style="font-size:10px;margin-right:3px;"></i>'+escH(r.engineer)+'</span>':'')
+            +(r.date?'<span><i class="fa-regular fa-calendar" style="font-size:10px;margin-right:3px;"></i>'+escH(r.date)+'</span>':'')
+          +'</div>'
+          // 貼入者 + 貼入時間
+          +'<div style="font-size:11px;color:var(--text-s);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;padding-top:4px;border-top:1px dashed var(--border);">'
+            +(getUserName(r.created_by)?'<span style="color:var(--accent);font-weight:500;"><i class="fa-solid fa-circle-user" style="font-size:10px;margin-right:3px;"></i>'+escH(getUserName(r.created_by))+' 貼入</span>':'')
+            +(r.created_at?'<span><i class="fa-regular fa-clock" style="font-size:10px;margin-right:3px;"></i>'+formatCreatedAt(r.created_at)+'</span>':'')
           +'</div>'
         +'</div>'
         +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">'
