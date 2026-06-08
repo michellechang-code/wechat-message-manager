@@ -868,14 +868,8 @@ function renderEngineer(){
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
         +'<div style="flex:1;min-width:0;">'
           +'<div style="font-size:15px;font-weight:700;color:var(--text-h);">'+hl(r.topic,q)+'</div>'
-          +'<div style="font-size:12px;color:var(--text-s);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;">'
+          +'<div style="font-size:12px;color:var(--text-s);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'
             +(r.company?'<span><i class="fa-regular fa-building" style="font-size:10px;margin-right:3px;"></i>'+hl(r.company,q)+'</span>':'')
-            +(r.model?'<span><i class="fa-solid fa-microchip" style="font-size:10px;margin-right:3px;"></i>'+hl(r.model,q)+'</span>':'')
-            +(r.engineer?'<span><i class="fa-solid fa-user-gear" style="font-size:10px;margin-right:3px;"></i>'+escH(r.engineer)+'</span>':'')
-            +(r.date?'<span><i class="fa-regular fa-calendar" style="font-size:10px;margin-right:3px;"></i>'+escH(r.date)+'</span>':'')
-          +'</div>'
-          // 貼入者 + 貼入時間
-          +'<div style="font-size:11px;color:var(--text-s);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;padding-top:4px;border-top:1px dashed var(--border);">'
             +(getUserName(r.created_by)?'<span style="color:var(--accent);font-weight:500;"><i class="fa-solid fa-circle-user" style="font-size:10px;margin-right:3px;"></i>'+escH(getUserName(r.created_by))+' 貼入</span>':'')
             +(r.created_at?'<span><i class="fa-regular fa-clock" style="font-size:10px;margin-right:3px;"></i>'+formatCreatedAt(r.created_at)+'</span>':'')
           +'</div>'
@@ -932,7 +926,7 @@ async function parseMessage(){
   var isCustomer=currentMsgType==='customer';
   var systemPrompt=isCustomer
     ?'你是工業設備商務訊息解析助理。支援中文和英文訊息。從聊天記錄或客戶來信中提取資訊，回傳純JSON（不含markdown）包含：company(客戶公司名稱，英文信件從寄件人公司或信件內容判斷), contact(聯絡人姓名), date(日期YYYY-MM-DD，若無填今天), model(機型或產品名稱), qty(數量純數字，單位為台), price(價格含幣別，若有多個都記錄), delivery(交期，格式YYYY/MM/DD或描述), status(根據訊息內容判斷：已確認/進行中/流失，預設進行中), note(重要備註), raw(原始訊息完整文字), tags(4至8個關鍵標籤陣列：若訊息為英文必須加入對應中文翻譯標籤，涵蓋機型、客戶、關鍵詞的中英文對照)。'
-    :'你是工業設備技術訊息解析助理。支援中文和英文訊息。從聊天記錄或技術郵件中提取資訊，回傳純JSON（不含markdown）包含：topic(任務主題，格式"機型 — 具體事項"，英文訊息可用英文), company(對應客戶公司名稱，若有), model(機型或設備名稱，若有), engineer(工程師或負責人名稱), date(日期YYYY-MM-DD，若無填今天), instruction(測試項目或指示內容), issue(異常問題描述，若有異常狀況才填，否則填空字串), progress(回報進度，若無填"尚未回報"), status(待處理/進行中/完成 三選一), raw(原始訊息完整文字), tags(4至8個關鍵標籤陣列：若訊息為英文，必須同時加入對應中文翻譯標籤，例如英文有scale則加"光學尺"，有spindle則加"主軸"，有bearing則加"軸承"，有coolant則加"冷卻液"，有vibration則加"震動"，有alarm則加"警報"，有axis則加"軸"，涵蓋零件名稱、問題類型、廠商名稱)。';
+    :'你是工業設備技術訊息解析助理。支援中文和英文訊息。嚴格規則：只填寫訊息中明確出現的資訊，找不到就填空字串或null，絕對不可猜測或編造。回傳純JSON（不含markdown）包含：topic(從訊息內容摘要主題，格式"機型或主題 — 具體事項"), company(訊息中明確提到的客戶公司名稱，找不到填空字串), model(訊息中明確出現的機型代號如RU6M2/DG6Z等，找不到填空字串), engineer(訊息中明確出現的人名，找不到填空字串), instruction(訊息的主要內容摘要), issue(訊息中明確描述的異常或問題，找不到填空字串), progress(訊息中明確描述的進度，找不到填"尚未回報"), status(待處理/進行中/完成 三選一，根據訊息內容判斷), raw(原始訊息完整文字，必填), tags(4至8個關鍵標籤：涵蓋機型、零件名稱、廠商、技術關鍵字；若訊息為英文必須同時加入中文對照標籤如scale→光學尺、spindle→主軸、bearing→軸承)。';
 
   try{
     var resp=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,system:systemPrompt,messages:[{role:'user',content:text}]})});
