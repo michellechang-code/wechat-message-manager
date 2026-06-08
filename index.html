@@ -380,7 +380,37 @@ var crmData = [];
 var engData = [];
 
 // ══ 繁簡轉換 ════════════════════════════════════════════════
-var T2S={'紅':'红','藍':'蓝','綠':'绿','黃':'黄','來':'来','對':'对','國':'国','時':'时','問':'问','訊':'讯','數':'数','機':'机','號':'号','線':'线','電':'电','頭':'头','樣':'样','廠':'厂','點':'点','單':'单','貨':'货','業':'业','發':'发','設':'设','備':'备','確':'确','認':'认','銷':'销','產':'产','術':'术','應':'应','標':'标','準':'准','聯':'联','強':'强','價':'价','請':'请','測':'测','試':'试','結':'结','過':'过','進':'进','記':'记','開':'开','關':'关','顯':'显','燈':'灯','統':'统','碼':'码','節':'节','體':'体','資':'资','訂':'订','詢':'询','報':'报','傳':'传','轉':'转','驗':'验','達':'达','導':'导','態':'态','萬':'万','這':'这','後':'后','們':'们','個':'个','為':'为','說':'说','來':'来','會':'会','當':'当','無':'无','與':'与','給':'给','讓':'让','兩':'两','點':'点','時':'时','間':'间','問':'问','題':'题','師':'师','圖':'图','複':'复','繼':'继','續':'续','雙':'双','規':'规','裝':'装'};
+var T2S={
+'紅':'红','藍':'蓝','綠':'绿','黃':'黄','來':'来','對':'对','國':'国','時':'时','問':'问','訊':'讯',
+'數':'数','機':'机','號':'号','線':'线','電':'电','頭':'头','樣':'样','廠':'厂','點':'点','單':'单',
+'貨':'货','業':'业','發':'发','設':'设','備':'备','確':'确','認':'认','銷':'销','產':'产','術':'术',
+'應':'应','標':'标','準':'准','聯':'联','強':'强','價':'价','請':'请','測':'测','試':'试','結':'结',
+'過':'过','進':'进','記':'记','開':'开','關':'关','顯':'显','燈':'灯','統':'统','碼':'码','節':'节',
+'體':'体','資':'资','訂':'订','詢':'询','報':'报','傳':'传','轉':'转','驗':'验','達':'达','導':'导',
+'態':'态','萬':'万','這':'这','後':'后','們':'们','個':'个','為':'为','說':'说','會':'会','當':'当',
+'無':'无','與':'与','給':'给','讓':'让','兩':'两','間':'间','題':'题','師':'师','圖':'图','複':'复',
+'繼':'继','續':'续','雙':'双','規':'规','裝':'装',
+'穎':'颖','億':'亿','龍':'龙','鳳':'凤','歡':'欢','夢':'梦','農':'农','邊':'边','還':'还',
+'讀':'读','話':'话','語':'语','論':'论','諮':'咨','講':'讲','課':'课','謝':'谢','誰':'谁',
+'該':'该','誤':'误','調':'调','費':'费','貿':'贸','賣':'卖','買':'买','財':'财','賬':'账',
+'賠':'赔','質':'质','頻':'频','額':'额','類':'类','歷':'历','樓':'楼','橋':'桥','樹':'树',
+'條':'条','棟':'栋','權':'权','歸':'归','樂':'乐','檔':'档','殺':'杀','氣':'气','沒':'没',
+'滅':'灭','漢':'汉','澤':'泽','灣':'湾','環':'环','現':'现','畫':'画','異':'异','盡':'尽',
+'監':'监','眾':'众','種':'种','稱':'称','簡':'简','簽':'签','範':'范','經':'经','維':'维',
+'網':'网','罰':'罚','義':'义','舊':'旧','藝':'艺','藥':'药','處':'处','製':'制','補':'补',
+'計':'计','診':'诊','評':'评','詞':'词','識':'识','責':'责','輕':'轻','輸':'输','車':'车',
+'連':'连','遠':'远','選':'选','錢':'钱','錄':'录','鍵':'键','門':'门','隊':'队','頁':'页',
+'順':'顺','領':'领','驗':'验','齊':'齐','廣':'广','慶':'庆','鍋':'锅','燒':'烧','雞':'鸡',
+'魚':'鱼','蝦':'虾','麵':'面','麵':'面','餐':'餐','館':'馆','飯':'饭','餃':'饺','糕':'糕',
+'顏':'颜','豐':'丰','鮮':'鲜','長':'长','張':'张','陳':'陈','劉':'刘','黃':'黄','趙':'赵',
+'吳':'吴','周':'周','鄭':'郑','孫':'孙','馬':'马','朱':'朱','胡':'胡','郭':'郭','何':'何',
+'羅':'罗','高':'高','鄧':'邓','韓':'韩','唐':'唐','馮':'冯','廖':'廖','丁':'丁','謝':'谢',
+'廠':'厂','鐵':'铁','銅':'铜','鋁':'铝','鋼':'钢','銀':'银','鑄':'铸','鍛':'锻','熱':'热',
+'冷':'冷','壓':'压','模':'模','具':'具','夾':'夹','治':'治','刀':'刀','軸':'轴','齒':'齿',
+'輪':'轮','軸':'轴','承':'承','彈':'弹','簧':'簧','閥':'阀','泵':'泵','缸':'缸','活':'活',
+'塞':'塞','螺':'螺','絲':'丝','釘':'钉','孔':'孔','槽':'槽','面':'面','板':'板','架':'架',
+'殼':'壳','罩':'罩','蓋':'盖','座':'座','臺':'台','箱':'箱','櫃':'柜','屏':'屏','顯':'显'
+}
 var S2T={};
 Object.keys(T2S).forEach(function(t){S2T[T2S[t]]=t;});
 function toS(s){return String(s||'').split('').map(function(c){return T2S[c]||c;}).join('');}
@@ -832,16 +862,20 @@ function renderEngineer(){
           +(canDelete(r)?'<button class="del-btn" onclick="deleteEngRecord(\''+r.id+'\')" title="刪除"><i class="fa-solid fa-trash-can"></i></button>':'')
         +'</div>'
       +'</div>'
-      +'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
-        +'<div>'
-          +'<div style="font-size:11px;color:var(--text-s);margin-bottom:3px;"><i class="fa-solid fa-flask" style="font-size:10px;margin-right:3px;"></i>測試項目／指示</div>'
-          +'<div style="font-size:13px;color:var(--text-m);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">'+hl(r.instruction||'—',q)+'</div>'
-        +'</div>'
-        +'<div>'
-          +'<div style="font-size:11px;color:var(--text-s);margin-bottom:3px;"><i class="fa-solid fa-triangle-exclamation" style="font-size:10px;margin-right:3px;"></i>異常／回報</div>'
-          +'<div style="font-size:13px;color:var(--text-m);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">'+hl((r.issue?r.issue+' / ':'')+(r.progress||'尚未回報'),q)+'</div>'
-        +'</div>'
+      // 摘要預覽（取 instruction 或 raw 前兩行）
+      +'<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
+        +'<div style="font-size:12px;color:var(--text-s);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">'+hl((r.instruction||r.raw||'').substring(0,120),q)+'</div>'
       +'</div>'
+      // 展開完整訊息按鈕
+      +(r.raw||r.instruction||r.issue||r.progress?'<div style="margin-top:8px;">'
+        +'<button onclick="toggleExpandEng(this)" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px;"><i class="fa-solid fa-chevron-down" style="font-size:10px;"></i><span> 展開完整訊息</span></button>'
+        +'<div class="eng-expand-content" style="display:none;margin-top:8px;background:var(--bg);border-radius:8px;padding:10px 12px;">'
+          +(r.raw?'<div style="font-size:13px;color:var(--text-b);line-height:1.7;white-space:pre-wrap;margin-bottom:8px;">'+hl(r.raw,q)+'</div>':'')
+          +(r.instruction&&r.instruction!==r.raw?'<div style="font-size:12px;color:var(--text-m);padding-top:6px;border-top:1px solid var(--border);"><b>指示：</b>'+hl(r.instruction,q)+'</div>':'')
+          +(r.issue?'<div style="font-size:12px;color:var(--red);margin-top:4px;"><b>異常：</b>'+hl(r.issue,q)+'</div>':'')
+          +(r.progress&&r.progress!=='尚未回報'?'<div style="font-size:12px;color:var(--text-m);margin-top:4px;"><b>進度：</b>'+hl(r.progress,q)+'</div>':'')
+        +'</div>'
+      +'</div>':'')
     +'</div>';
   }).join('');
 }
@@ -874,8 +908,8 @@ async function parseMessage(){
 
   var isCustomer=currentMsgType==='customer';
   var systemPrompt=isCustomer
-    ?'你是工業設備商務訊息解析助理。支援中文和英文訊息。從聊天記錄或客戶來信中提取資訊，回傳純JSON（不含markdown）包含：company(客戶公司名稱，英文信件從寄件人公司或信件內容判斷), contact(聯絡人姓名), date(日期YYYY-MM-DD，若無填今天), model(機型或產品名稱), qty(數量純數字，單位為台), price(價格含幣別，若有多個都記錄), delivery(交期，格式YYYY/MM/DD或描述), status(根據訊息內容判斷：已確認/進行中/流失，預設進行中), note(重要備註), raw(原始訊息完整文字), tags(2至4個關鍵標籤陣列，可用英文)。若訊息為英文，欄位值也可保留英文。'
-    :'你是工業設備技術訊息解析助理。支援中文和英文訊息。從聊天記錄或技術郵件中提取資訊，回傳純JSON（不含markdown）包含：topic(任務主題，格式"機型 — 具體事項"，英文訊息可用英文), company(對應客戶公司名稱，若有), model(機型或設備名稱，若有), engineer(工程師或負責人名稱), date(日期YYYY-MM-DD，若無填今天), instruction(測試項目或指示內容), issue(異常問題描述，若有異常狀況才填，否則填空字串), progress(回報進度，若無填"尚未回報"), status(待處理/進行中/完成 三選一), tags(2至4個關鍵標籤陣列，可用英文)。若訊息為英文，欄位值也可保留英文。';
+    ?'你是工業設備商務訊息解析助理。支援中文和英文訊息。從聊天記錄或客戶來信中提取資訊，回傳純JSON（不含markdown）包含：company(客戶公司名稱，英文信件從寄件人公司或信件內容判斷), contact(聯絡人姓名), date(日期YYYY-MM-DD，若無填今天), model(機型或產品名稱), qty(數量純數字，單位為台), price(價格含幣別，若有多個都記錄), delivery(交期，格式YYYY/MM/DD或描述), status(根據訊息內容判斷：已確認/進行中/流失，預設進行中), note(重要備註), raw(原始訊息完整文字), tags(4至8個關鍵標籤陣列：若訊息為英文必須加入對應中文翻譯標籤，涵蓋機型、客戶、關鍵詞的中英文對照)。'
+    :'你是工業設備技術訊息解析助理。支援中文和英文訊息。從聊天記錄或技術郵件中提取資訊，回傳純JSON（不含markdown）包含：topic(任務主題，格式"機型 — 具體事項"，英文訊息可用英文), company(對應客戶公司名稱，若有), model(機型或設備名稱，若有), engineer(工程師或負責人名稱), date(日期YYYY-MM-DD，若無填今天), instruction(測試項目或指示內容), issue(異常問題描述，若有異常狀況才填，否則填空字串), progress(回報進度，若無填"尚未回報"), status(待處理/進行中/完成 三選一), raw(原始訊息完整文字), tags(4至8個關鍵標籤陣列：若訊息為英文，必須同時加入對應中文翻譯標籤，例如英文有scale則加"光學尺"，有spindle則加"主軸"，有bearing則加"軸承"，有coolant則加"冷卻液"，有vibration則加"震動"，有alarm則加"警報"，有axis則加"軸"，涵蓋零件名稱、問題類型、廠商名稱)。';
 
   try{
     var resp=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,system:systemPrompt,messages:[{role:'user',content:text}]})});
@@ -908,11 +942,12 @@ async function parseMessage(){
       document.getElementById('paste-input').value='';
       if(currentTab==='customer') renderUnified();
     } else {
+      if(!parsed.raw) parsed.raw=text;
       var {data:insertedE,error:errE}=await sb.from('engineer_messages').insert({
         topic:parsed.topic,company:parsed.company,model:parsed.model,
         engineer:parsed.engineer,date:parsed.date,instruction:parsed.instruction,
         issue:parsed.issue,progress:parsed.progress,status:parsed.status,
-        tags:parsed.tags,created_by:currentUser.id
+        raw:parsed.raw,tags:parsed.tags,created_by:currentUser.id
       }).select().single();
       if(errE) throw new Error(errE.message);
       engData.unshift(insertedE);
@@ -1126,6 +1161,17 @@ function debounceStats(){
   _timerStats=setTimeout(function(){renderStats();},300);
 }
 
+function toggleExpandEng(btn){
+  var wrap=btn.parentNode;
+  var content=wrap.querySelector('.eng-expand-content');
+  var icon=btn.querySelector('i');
+  var label=btn.querySelector('span');
+  if(!content) return;
+  var isOpen=content.style.display!=='none';
+  content.style.display=isOpen?'none':'block';
+  if(icon) icon.className=isOpen?'fa-solid fa-chevron-down':'fa-solid fa-chevron-up';
+  if(label) label.textContent=isOpen?' 展開完整訊息':' 收起';
+}
 function toggleExpandCRM(btn){
   var wrap=btn.parentNode;
   var content=wrap.querySelector('.crm-expand-content');
